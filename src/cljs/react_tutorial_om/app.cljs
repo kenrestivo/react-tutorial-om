@@ -26,7 +26,8 @@
   (go (let [{{cs :comments} :body} (<! (http/get url))]
         (om/update!
          app
-         ;; The comments need to be a vector, not a list. Not sure why.
+         ;; The comments need to be a vector, not a list.
+         ;; Probably because om uses get-in a lot, which doesn't work on lists.
          #(assoc % :comments (vec (map with-id cs)))))))
 
 (defn- value-from-node
