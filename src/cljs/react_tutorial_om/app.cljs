@@ -82,7 +82,7 @@
             (prn (:message res))))))
  
 (defn handle-submit
-  [e cursor owner opts]
+  [cursor owner opts]
   (let [[author author-node] (value-from-node owner "author")
         [text text-node]     (value-from-node owner "text")]
     (.log js/console cursor)
@@ -97,7 +97,7 @@
     om/IRender
     (render [this]
       (dom/form
-       #js {:className "commentForm" :onSubmit #(handle-submit % app owner opts)}
+       #js {:className "commentForm" :onSubmit (fn [_] (handle-submit app owner opts))}
        (dom/input #js {:type "text" :placeholder "Your Name" :ref "author"})
        (dom/input #js {:type "text" :placeholder "Say something..." :ref "text"})
        (dom/input #js {:type "submit" :value "Post"})))))
