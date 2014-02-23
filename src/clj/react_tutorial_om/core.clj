@@ -3,6 +3,7 @@
             [compojure.route :as route]
             [compojure.core :refer [GET POST defroutes]]
             [ring.util.response :as resp]
+            [clojure.java.io :as io]
             [cheshire.core :as json]
             [clojure.java.io :as io]))
 
@@ -13,9 +14,25 @@
    :headers {"Content-Type" "application/json"}
    :body (json/generate-string data)})
 
+
+(defn assure-cache
+  "From utilza.
+   Nice to have local versions of js files when on flaky network connections"
+  [url cache]
+  (try
+    (-> cache
+        clojure.java.io/input-stream
+        .close)
+    (catch Exception _
+      (->> url
+           slurp
+           (spit cache)))))
+
+
 (defn init
   []
-  (reset! comments (-> (slurp "comments.json")
+  (assure-cache "http://fb.me/react-0.5.1.js" "resources/public/js/react-0.5.1.js")
+  (reset! comments (-> (slurp "resources/comments.json")
                        (json/parse-string true)
                        vec)))
 
@@ -42,3 +59,4 @@
 (def app
   (-> #'app-routes
       handler/api))
+

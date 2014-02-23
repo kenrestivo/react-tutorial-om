@@ -22,12 +22,14 @@
   (assoc m :id (guid)))
 
 (defn- fetch-comments
-    [app {:keys [url]}]
+    [app url]
   (go (let [{{cs :comments} :body} (<! (http/get url))]
         (om/update!
          app
-         ;; The comments need to be a vector, not a list. Not sure why.
-         #(assoc % :comments (vec (map with-id cs)))))))
+         ;; dnolen says the app-state (comments) must satify map? or indexed?
+         ;; Lists and lazy seqs (returned by map) don't do that, but mapv
+         ;; returns a vector, which satisfies indexed? so that'll work.
+         assoc  :comments (mapv with-id cs)))))
 
 (defn- value-from-node
   [owner field]
@@ -44,10 +46,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Components
 
-(def INITIAL [])
+(def initial-state [])
 
 (def app-state
-  (atom {:comments INITIAL}))
+  (atom {:comments initial-state}))
 
 (defn comment
   [{:keys [author text] :as cursor} owner opts]
@@ -101,15 +103,15 @@
        (dom/input #js {:type "submit" :value "Post"})))))
  
 (defn comment-box 
-  [cursor owner {:keys [poll-interval] :as opts}]
+  [cursor owner {:keys [poll-interval url] :as opts}]
   (reify
     om/IInitState
     (init-state [this]
-      (om/update! cursor #(assoc % :comments INITIAL)))
+      (om/update! cursor assoc  :comments initial-state))
     om/IWillMount
     (will-mount [this]
       (go (while true
-            (fetch-comments cursor opts)
+            (fetch-comments cursor url)
             (<! (timeout poll-interval)))))
     om/IRender
     (render [this]
