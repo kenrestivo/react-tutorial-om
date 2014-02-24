@@ -6,6 +6,7 @@
             [markdown.core :as md]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
+            [weasel.repl :as ws-repl]
             [secretary.core :as secretary]
             [cljs-http.client :as http]
             [react-tutorial-om.utils :refer [guid]])
@@ -14,15 +15,18 @@
 
 (enable-console-print!)
 
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Util
- 
+
 (defn- with-id
   [m]
   (assoc m :id (guid)))
 
 (defn- fetch-comments
-    [app url]
+  [app url]
   (go (let [{{cs :comments} :body} (<! (http/get url))]
         (om/update!
          app
@@ -55,11 +59,11 @@
   [{:keys [author text] :as cursor} owner opts]
   (.log js/console (str "comment cursor = " cursor))
   (om/component
-    (let [raw-markup (md/mdToHtml (or text "blank comment!"))
-          color "red"]
-      (dom/div #js {:className "comment"}
-               (dom/h2 #js {:className "commentAuthor"} author)
-               (dom/span #js {:dangerouslySetInnerHTML #js {:__html raw-markup}} )))))
+   (let [raw-markup (md/mdToHtml (or text "blank comment!"))
+         color "red"]
+     (dom/div #js {:className "comment"}
+              (dom/h2 #js {:className "commentAuthor"} author)
+              (dom/span #js {:dangerouslySetInnerHTML #js {:__html raw-markup}} )))))
 
 (defn comment-list
   [{:keys [comments] :as cursor} owner opts]
@@ -69,9 +73,9 @@
    (dom/div #js {:className "commentList"}
             (into-array
              (om/build-all comment comments
-                                 {:key :id
-                                  :fn identity
-                                  :opts opts})))))
+                           {:key :id
+                            :fn identity
+                            :opts opts})))))
 
 (defn save-comment!
   [comment cursor {:keys [url]}]
@@ -80,7 +84,7 @@
                     (conj comments (assoc comment :id (guid)))))
       (go (let [res (<! (http/post url {:json-params comment}))]
             (prn (:message res))))))
- 
+
 (defn handle-submit
   [cursor owner opts]
   (let [[author author-node] (value-from-node owner "author")
@@ -99,9 +103,9 @@
       (dom/form
        #js {:className "commentForm" :onSubmit (fn [_] (handle-submit app owner opts))}
        (dom/input #js {:type "text" :placeholder "Your Name" :ref "author"})
-       (dom/input #js {:type "text" :placeholder "Say something..." :ref "text"})
+       (dom/input #js {:type "text" :placeholder "Speak up..." :ref "text"})
        (dom/input #js {:type "submit" :value "Post"})))))
- 
+
 (defn comment-box 
   [cursor owner {:keys [poll-interval url] :as opts}]
   (reify
@@ -131,3 +135,9 @@
                                  :url "/comments"}})))))
 
 (om/root app-state tutorial-app (.getElementById js/document "content"))
+
+
+;; this will attempt the connection
+;; TODO: don't do this here, make it dependent upon dev configuration,
+;; or wrap it in a function
+(ws-repl/connect "ws://localhost:9001" :verbose false)
